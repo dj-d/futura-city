@@ -1,28 +1,15 @@
 #!/usr/bin/env python3
-import os
-
 import aws_cdk as cdk
 
-from futura_city.futura_city_stack import FuturaCityStack
+from data_analytics.data_analytics_stack import DataAnalyticsStack
+from energy_efficiency.energy_efficiency_stack import EnergyEfficiencyStack
+from smart_traffic.smart_traffic_stack import SmartTrafficStack
 
 
 app = cdk.App()
-FuturaCityStack(app, "FuturaCityStack",
-    # If you don't specify 'env', this stack will be environment-agnostic.
-    # Account/Region-dependent features and context lookups will not work,
-    # but a single synthesized template can be deployed anywhere.
 
-    # Uncomment the next line to specialize this stack for the AWS Account
-    # and Region that are implied by the current CLI configuration.
-
-    #env=cdk.Environment(account=os.getenv('CDK_DEFAULT_ACCOUNT'), region=os.getenv('CDK_DEFAULT_REGION')),
-
-    # Uncomment the next line if you know exactly what Account and Region you
-    # want to deploy the stack to. */
-
-    #env=cdk.Environment(account='123456789012', region='us-east-1'),
-
-    # For more information, see https://docs.aws.amazon.com/cdk/latest/guide/environments.html
-    )
+data_analytics_stack = DataAnalyticsStack(app, "DataAnalyticsStack")
+energy_efficiency_stack = EnergyEfficiencyStack(app, "EnergyEfficiencyStack")
+smart_traffic_stack = SmartTrafficStack(app, "SmartTrafficStack")
 
 app.synth()
