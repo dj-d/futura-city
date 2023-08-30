@@ -77,5 +77,16 @@ class EnergyEfficiencyStack(Stack):
             engine=rds.DatabaseInstanceEngine.mysql(
                 version=rds.MysqlEngineVersion.VER_5_7
             ),
-            vpc=self.vpc
+            multi_az=False,
+            vpc=self.vpc,
+            # vpc_subnets=ec2.SubnetSelection(
+            #     subnet_group_name=self.subnet_name
+            # ),
+            instance_type=ec2.InstanceType.of(
+                ec2.InstanceClass.M5,  # TODO: Check if this is enough
+                ec2.InstanceSize.LARGE  # TODO: Check if this is enough
+            ),
+            allocated_storage=20,  # TODO: Check if this is enough
+            deletion_protection=False,
+            delete_automated_backups=True
         )
