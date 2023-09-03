@@ -6,7 +6,7 @@ import pymysql
 from typing import Union, Optional
 
 
-def handler(event, context):
+def handler(event, context):  # TODO: Add doc
     secret = get_secret()
 
     # Connect to database
@@ -80,7 +80,7 @@ def handler(event, context):
         message=action_message
     )
 
-def get_secret():
+def get_secret():  # TODO: Add doc
     # Get environment variables
     db_secret_arn = os.environ['DB_SECRET_ARN']
 
@@ -94,7 +94,7 @@ def get_secret():
     return secret
 
 
-def make_response(status_code: int, message: str = None, body: Union[dict, list] = None, error: Optional[pymysql.MySQLError] = None) -> dict:
+def make_response(status_code: int, message: str = None, body: Union[dict, list] = None, error: Optional[pymysql.MySQLError] = None) -> dict:  # TODO: Add doc
     if error is not None:
         print(f'etype: {type(error)}')
         code, message = error.args
