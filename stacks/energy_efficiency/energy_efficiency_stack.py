@@ -92,28 +92,36 @@ class EnergyEfficiencyStack(Stack):
         vpc_cidr = ec2.IpAddresses.cidr('10.0.0.0/24')
 
         private_subnet = ec2.SubnetConfiguration(
-            name='Private DB Subnet',
-            subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            name='Private Subnet',
+            subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
             cidr_mask=28
         )
 
-        public_subnet = ec2.SubnetConfiguration(
-            name='Public Subnet',
-            subnet_type=ec2.SubnetType.PUBLIC,
-            cidr_mask=28
-        )
-
-        self.vpc: ec2.Vpc = ec2.Vpc(
+        self.vpc = ec2.Vpc(
             self,
             vpc_construct_id,
             vpc_name=vpc_name,
             max_azs=2,
             ip_addresses=vpc_cidr,
             subnet_configuration=[
-                private_subnet,
-                public_subnet
-            ],
-            nat_gateways=1
+                private_subnet
+            ]
+        )
+
+        self.vpc.add_interface_endpoint(
+            id='SecretsManagerEndpoint',
+            service=ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
+            subnets=ec2.SubnetSelection(
+                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+            )
+        )
+
+        self.vpc.add_interface_endpoint(
+            id='LambdaEndpoint',
+            service=ec2.InterfaceVpcEndpointAwsService.LAMBDA_,
+            subnets=ec2.SubnetSelection(
+                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+            )
         )
 
     def __create_lambda_with_custom_dependencies(self, lambda_id: str, folder_code_path: str, index_file_name: str, dest_vpc: ec2.Vpc,
@@ -127,7 +135,7 @@ class EnergyEfficiencyStack(Stack):
             runtime=lambda_.Runtime.PYTHON_3_8,
             vpc=dest_vpc,
             vpc_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
             ),
             security_groups=[security_group],
             timeout=Duration.seconds(300),
@@ -164,7 +172,7 @@ class EnergyEfficiencyStack(Stack):
             multi_az=False,
             vpc=self.vpc,
             vpc_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS
+                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
             ),
             instance_type=ec2.InstanceType.of(
                 ec2.InstanceClass.M5,  # TODO: Check if this is enough
