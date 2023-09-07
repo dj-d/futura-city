@@ -51,7 +51,7 @@ def handler(event, context):  # TODO: Add doc
             else:
                 return make_response(
                     status_code=400,
-                    error='Invalid action'
+                    body='Invalid action'
                 )
 
             cur.execute(sql)
@@ -100,7 +100,7 @@ def get_secret():  # TODO: Add doc
     return secret
 
 
-def make_response(status_code: int, body: Union[dict, list, str] = None, error: Optional[pymysql.MySQLError, str] = None) -> dict:  # TODO: Add doc
+def make_response(status_code: int, body: Union[dict, list, str] = None, error: Optional[pymysql.MySQLError] = None) -> dict:  # TODO: Add doc
     if error is not None:
         print(f'etype: {type(error)}')
         code, message = error.args
