@@ -1,3 +1,8 @@
+"""
+References:
+    - Handle Lambda errors in API Gateway: https://docs.aws.amazon.com/apigateway/latest/developerguide/handle-errors-in-lambda-integration.html
+"""
+
 # TODO: Add logger
 
 import os
@@ -91,14 +96,21 @@ def make_response(status_code: int, body: Union[dict, list] = None, error: Optio
         print(f'etype: {type(error)}')
         code, message = error.args
         return {
+            'isBase64Encoded': False,
             'statusCode': status_code,
-            'body': {
-                'error_code': code,
-                'error_message': message
+            'body': message,
+            'headers': {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': '*'
             }
         }
 
     return {
+        'isBase64Encoded': False,
         'statusCode': status_code,
+        'headers': {
+            'Content-Type': 'application/json',
+            'Access-Control-Allow-Origin': '*'
+        },
         'body': body
     }
