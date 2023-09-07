@@ -22,6 +22,10 @@ References:
       - amazon-rds-init-cdk: https://github.com/aws-samples/amazon-rds-init-cdk
       - Grant AWS Lambda Access to Secrets Manager: https://bobbyhadz.com/blog/aws-grant-lambda-access-to-secrets-manager
       - How to add permissions to Lambda Functions in AWS CDK: https://bobbyhadz.com/blog/aws-cdk-add-lambda-permission
+      - custom-resource: https://github.com/aws-samples/aws-cdk-examples/tree/master/python/custom-resource
+      - amazon-rds-init-cdk: https://github.com/aws-samples/amazon-rds-init-cdk/tree/main
+      - RDS (with Custom Resource for adding database, user and table) - AWS CDK using TypeScript: https://www.youtube.com/watch?v=faTaAJ-zIio&ab_channel=FarukAda
+      - cdk-ts-rds: https://github.com/CodingWithFaruci/cdk-ts-rds/tree/main
 """
 
 from constructs import Construct
@@ -111,7 +115,6 @@ class EnergyEfficiencyStack(Stack):
             ],
             nat_gateways=1
         )
-
 
     def __create_lambda_with_custom_dependencies(self, lambda_id: str, folder_code_path: str, index_file_name: str, dest_vpc: ec2.Vpc,
                                                  security_group: list[ec2.SecurityGroup], secret_arn: str) -> lambda_python.PythonFunction:  # TODO: Add doc
