@@ -42,18 +42,39 @@ from aws_cdk import (
 
 class EnergyEfficiencyStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
+        super().__init__(
+            scope,
+            construct_id,
+            description='This stack includes the resources needed for the FuturaCity project to achieve the goal of energy efficiency',
+            **kwargs
+        )
+
+        self.service_id_prefix = 'ee-'
+        self.service_name_prefix = 'EE'
+        self.sg_id_postfix = self.service_id_prefix + 'sg-'
+        self.sg_name_postfix = self.service_name_prefix + 'SG'
 
         self.__create_vpc()
 
-        self.db_sg = self.__create_sg(sg_id='EEDbSG')
-        self.lambda_sg = self.__create_sg(sg_id='EELambdaSG')
+        self.rds_sg = self.__create_sg(
+            sg_id='rds',
+            sg_name='Rds',
+            description='Security group for RDS'
+        )
+
+        self.lambda_sg = self.__create_sg(
+            sg_id='lambda',
+            sg_name='Lambda',
+            description='Security group for Lambda'
+        )
 
         self.__create_db()
 
         # TODO: find a way to start the lambda_init only once to initialize the db
         self.lambda_init = self.__create_lambda_with_custom_dependencies(
-            lambda_id='LambdaInit',
+            lambda_id='lambda-init',
+            lambda_name='LambdaInit',
+            description='Initialize or Delete the database table "energy_efficiency"',
             folder_code_path='stacks/energy_efficiency/lambda_init',
             index_file_name='lambda-handler.py',
             dest_vpc=self.vpc,
@@ -62,7 +83,9 @@ class EnergyEfficiencyStack(Stack):
         )
 
         self.lambda_wr = self.__create_lambda_with_custom_dependencies(
-            lambda_id='LambdaWrite',
+            lambda_id='lambda-write',
+            lambda_name='LambdaWrite',
+            description='Write data to the database table "energy_efficiency"',
             folder_code_path='stacks/energy_efficiency/lambda_write',
             index_file_name='lambda-handler.py',
             dest_vpc=self.vpc,
@@ -71,7 +94,9 @@ class EnergyEfficiencyStack(Stack):
         )
 
         self.lambda_rd = self.__create_lambda_with_custom_dependencies(
-            lambda_id='LambdaRead',
+            lambda_id='lambda-read',
+            lambda_name='LambdaRead',
+            description='Read all data from the database table "energy_efficiency"',
             folder_code_path='stacks/energy_efficiency/lambda_read',
             index_file_name='lambda-handler.py',
             dest_vpc=self.vpc,
@@ -79,21 +104,28 @@ class EnergyEfficiencyStack(Stack):
             secret_arn=self.db.secret.secret_arn
         )
 
-    def __create_sg(self, sg_id: str) -> ec2.SecurityGroup:  # TODO: Add doc
+    def __create_sg(self, sg_id: str, sg_name: str, description: str) -> ec2.SecurityGroup:  # TODO: Add doc
         return ec2.SecurityGroup(
             self,
-            id=sg_id,
+            id=self.sg_id_postfix + sg_id,
+            security_group_name=self.sg_name_postfix + sg_name,
+            description=description,
             vpc=self.vpc
         )
 
     def __create_vpc(self) -> None:  # TODO: Add doc
-        vpc_construct_id = 'energy-efficiency-vpc'
-        vpc_name = 'EnergyEfficiencyVpc'
+        vpc_construct_id = self.service_id_prefix + 'vpc'
+        vpc_name = self.service_name_prefix + 'Vpc'
         vpc_cidr = ec2.IpAddresses.cidr('10.0.0.0/24')
 
+        private_subnet_id = self.service_id_prefix + 'private-subnet'
+        self.private_subnet_type = ec2.SubnetType.PRIVATE_ISOLATED
+
+        vpc_endpoint_id_prefix = self.service_id_prefix + 'vpc-ep-'
+
         private_subnet = ec2.SubnetConfiguration(
-            name='Private Subnet',
-            subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
+            name=private_subnet_id,
+            subnet_type=self.private_subnet_type,
             cidr_mask=28
         )
 
@@ -109,33 +141,35 @@ class EnergyEfficiencyStack(Stack):
         )
 
         self.vpc.add_interface_endpoint(
-            id='SecretsManagerEndpoint',
+            id=vpc_endpoint_id_prefix + 'secrets-manager',
             service=ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
             subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+                subnet_type=self.private_subnet_type
             )
         )
 
         self.vpc.add_interface_endpoint(
-            id='LambdaEndpoint',
+            id=vpc_endpoint_id_prefix + 'lambda',
             service=ec2.InterfaceVpcEndpointAwsService.LAMBDA_,
             subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+                subnet_type=self.private_subnet_type
             )
         )
 
-    def __create_lambda_with_custom_dependencies(self, lambda_id: str, folder_code_path: str, index_file_name: str, dest_vpc: ec2.Vpc,
+    def __create_lambda_with_custom_dependencies(self, lambda_id: str, lambda_name: str, description: str, folder_code_path: str, index_file_name: str, dest_vpc: ec2.Vpc,
                                                  security_group: list[ec2.SecurityGroup], secret_arn: str) -> lambda_python.PythonFunction:  # TODO: Add doc
         base_lambda = lambda_python.PythonFunction(
             self,
-            id=lambda_id,
+            id=self.service_id_prefix + lambda_id,
+            function_name=self.service_name_prefix + lambda_name,
+            description=description,
             entry=folder_code_path,
             index=index_file_name,
             handler='handler',
             runtime=lambda_.Runtime.PYTHON_3_8,
             vpc=dest_vpc,
             vpc_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+                subnet_type=self.private_subnet_type
             ),
             security_groups=[security_group],
             timeout=Duration.seconds(300),
@@ -159,20 +193,20 @@ class EnergyEfficiencyStack(Stack):
         return base_lambda
 
     def __create_db(self) -> None:  # TODO: Add doc
-        db_construct_id = 'energy-efficiency-db'
-        self.db_name = 'EnergyEfficiencyDb'
+        db_id = self.service_id_prefix + 'rds-mysql'
+        self.db_name = self.service_name_prefix + 'RdsMysql'
 
         self.db = rds.DatabaseInstance(
             self,
-            db_construct_id,
+            id=db_id,
             database_name=self.db_name,
             engine=rds.DatabaseInstanceEngine.mysql(
-                version=rds.MysqlEngineVersion.VER_5_7
+                version=rds.MysqlEngineVersion.VER_5_7  # TODO: Update version
             ),
             multi_az=False,
             vpc=self.vpc,
             vpc_subnets=ec2.SubnetSelection(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED
+                subnet_type=self.private_subnet_type
             ),
             instance_type=ec2.InstanceType.of(
                 ec2.InstanceClass.M5,  # TODO: Check if this is enough
@@ -181,7 +215,7 @@ class EnergyEfficiencyStack(Stack):
             allocated_storage=20,  # TODO: Check if this is enough
             deletion_protection=False,
             delete_automated_backups=True,
-            security_groups=[self.db_sg],
+            security_groups=[self.rds_sg],
             credentials=rds.Credentials.from_generated_secret(
                 username='admin'
             )
