@@ -26,6 +26,7 @@ References:
       - amazon-rds-init-cdk: https://github.com/aws-samples/amazon-rds-init-cdk/tree/main
       - RDS (with Custom Resource for adding database, user and table) - AWS CDK using TypeScript: https://www.youtube.com/watch?v=faTaAJ-zIio&ab_channel=FarukAda
       - cdk-ts-rds: https://github.com/CodingWithFaruci/cdk-ts-rds/tree/main
+      - DB instance supported combination: https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Concepts.DBInstanceClass.html
 """
 
 from constructs import Construct
@@ -195,13 +196,14 @@ class EnergyEfficiencyStack(Stack):
     def __create_db(self) -> None:  # TODO: Add doc
         db_id = self.service_id_prefix + 'rds-mysql'
         self.db_name = self.service_name_prefix + 'RdsMysql'
+        db_engine_version = rds.MysqlEngineVersion.VER_8_0_28
 
         self.db = rds.DatabaseInstance(
             self,
             id=db_id,
             database_name=self.db_name,
             engine=rds.DatabaseInstanceEngine.mysql(
-                version=rds.MysqlEngineVersion.VER_5_7  # TODO: Update version
+                version=db_engine_version
             ),
             multi_az=False,
             vpc=self.vpc,
@@ -209,10 +211,10 @@ class EnergyEfficiencyStack(Stack):
                 subnet_type=self.private_subnet_type
             ),
             instance_type=ec2.InstanceType.of(
-                ec2.InstanceClass.M5,  # TODO: Check if this is enough
-                ec2.InstanceSize.LARGE  # TODO: Check if this is enough
+                ec2.InstanceClass.M6I,
+                ec2.InstanceSize.LARGE
             ),
-            allocated_storage=20,  # TODO: Check if this is enough
+            allocated_storage=500,
             deletion_protection=False,
             delete_automated_backups=True,
             security_groups=[self.rds_sg],
