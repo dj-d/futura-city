@@ -31,10 +31,10 @@ smart_traffic_stack = SmartTrafficStack(
 
 energy_efficiency_api_gw_stack = ApiGatewayStack(
     scope=app,
-    construct_id='EnergyEfficiencyApiGateway',
-    env=env_EU,
-    api_name='EnergyEfficiencyApi',
-    api_id='energy-efficiency-api',
+    construct_id='EnergyEfficiencyApiGatewayStack',
+    apigw_description='Energy Efficiency Api Gateway',
+    api_id=energy_efficiency_stack.service_id_prefix + 'api-gateway',
+    api_name=energy_efficiency_stack.service_name_prefix + 'ApiGateway',
     endpoint='energy-efficiency',
     allowed_methods=['GET', 'POST'],
     api_models=[
@@ -46,7 +46,8 @@ energy_efficiency_api_gw_stack = ApiGatewayStack(
             method='POST',
             lambda_integration=energy_efficiency_stack.lambda_wr
         )
-    ]
+    ],
+    env=env_EU
 )
 
 app.synth()
