@@ -1,3 +1,15 @@
+"""
+References:
+    - AWS Doc:
+        - aws_ec2.Vpc: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/Vpc.html#aws_cdk.aws_ec2.Vpc
+        - aws_ec2.SubnetConfiguration: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SubnetConfiguration.html
+        - aws_ec2.SubnetType: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SubnetType.html
+        - aws_ec2.IpAddresses: ttps://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/IpAddresses.html#aws_cdk.aws_ec2.IpAddresses
+
+    - Examples:
+        - aws-cdk-rfcs: https://github.com/aws/aws-cdk-rfcs/blob/main/text/0340-firehose-l2.md
+"""
+
 from constructs import Construct
 from aws_cdk import (
     Stack,
