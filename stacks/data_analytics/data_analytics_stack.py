@@ -1,11 +1,45 @@
 from constructs import Construct
 from aws_cdk import (
-    Stack
+    Stack,
+    aws_ec2 as ec2
 )
 
 
 class DataAnalyticsStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
-        super().__init__(scope, construct_id, **kwargs)
+        super().__init__(
+            scope,
+            construct_id,
+            description='This stack includes the resources needed for the FuturaCity project to achieve the goal of data analytics',
+            **kwargs
+        )
 
-        # The code that defines your stack goes here
+        self.service_id_prefix = 'da-'
+        self.service_name_prefix = 'DA'
+
+        self.__create_vpc()
+
+    def __create_vpc(self) -> None:  # TODO: Add doc
+        vpc_construct_id = self.service_id_prefix + 'vpc'
+        vpc_name = self.service_name_prefix + 'Vpc'
+        vpc_cidr = ec2.IpAddresses.cidr('10.0.0.0/24')
+
+        private_subnet_id = self.service_id_prefix + 'private-subnet'
+        self.__private_subnet_type = ec2.SubnetType.PRIVATE_ISOLATED
+
+        private_subnet = ec2.SubnetConfiguration(
+            name=private_subnet_id,
+            subnet_type=self.__private_subnet_type,
+            cidr_mask=28
+        )
+
+        self.__vpc = ec2.Vpc(
+            self,
+            vpc_construct_id,
+            vpc_name=vpc_name,
+            max_azs=2,
+            ip_addresses=vpc_cidr,
+            subnet_configuration=[
+                private_subnet
+            ]
+        )
