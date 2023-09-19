@@ -33,8 +33,8 @@ energy_efficiency_api_gw_stack = ApiGatewayStack(
     scope=app,
     construct_id='EnergyEfficiencyApiGatewayStack',
     apigw_description='Energy Efficiency Api Gateway',
-    api_id=energy_efficiency_stack.service_id_prefix + 'api-gateway',
-    api_name=energy_efficiency_stack.service_name_prefix + 'ApiGateway',
+    api_id=energy_efficiency_stack.service_prefix.id + 'api-gateway',
+    api_name=energy_efficiency_stack.service_prefix.name + 'ApiGateway',
     endpoint='energy-efficiency',
     allowed_methods=['GET', 'POST'],
     api_models=[
@@ -42,6 +42,23 @@ energy_efficiency_api_gw_stack = ApiGatewayStack(
             method='GET',
             lambda_integration=energy_efficiency_stack.lambda_rd
         ),
+        ApiGatewayModel(
+            method='POST',
+            lambda_integration=energy_efficiency_stack.lambda_wr
+        )
+    ],
+    env=env_EU
+)
+
+data_analytics_api_gw_stack = ApiGatewayStack(
+    scope=app,
+    construct_id='DataAnalyticsApiGatewayStack',
+    apigw_description='Data Analytics Api Gateway',
+    api_id=data_analytics_stack.service_prefix.id + 'api-gateway',
+    api_name=data_analytics_stack.service_prefix.name + 'ApiGateway',
+    endpoint='data-analytics',
+    allowed_methods=['POST'],
+    api_models=[
         ApiGatewayModel(
             method='POST',
             lambda_integration=energy_efficiency_stack.lambda_wr
