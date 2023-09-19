@@ -1,11 +1,21 @@
+"""
+References:
+  - AWS Doc:
+        - aws_cdk.Duration: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk/Duration.html#aws_cdk.Duration.plus
+        - aws_ec2.Vpc: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/Vpc.html#aws_cdk.aws_ec2.Vpc
+        - aws_ec2.SubnetType: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SubnetType.html
+        - aws_ec2.InstanceClass: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
+        - aws_ec2.InstanceSize: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceSize.html
+        - aws_ec2.SecurityGroup: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SecurityGroup.html#aws_cdk.aws_ec2.SecurityGroup
+"""
+
 from dataclasses import dataclass
 
 from aws_cdk import (
     Duration,
     aws_ec2 as ec2,
     aws_rds as rds,
-    aws_lambda as lambda_,
-
+    aws_lambda as lambda_
 )
 
 
