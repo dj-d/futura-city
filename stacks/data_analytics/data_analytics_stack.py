@@ -15,6 +15,11 @@ from aws_cdk import (
     aws_ec2 as ec2
 )
 
+from ..api_gateway.api_gateway_stack import (
+    ApiGatewayStack,
+    ApiGatewayModel
+)
+
 from lib.dataclasses import (
     ServicePrefix,
     VpcConfig,
@@ -54,4 +59,17 @@ class DataAnalyticsStack(Stack):
                 subnet_id='private-subnet',
                 cidr_mask=28
             )
+        )
+
+        # ---------------------------------------- #
+        # Api Gateway
+        # ---------------------------------------- #
+        self.api_gateway = ApiGatewayStack(
+            self,
+            construct_id=self.service_prefix.id + 'api-gateway',
+            description='Data Analytics Api Gateway',
+            service_prefix=self.service_prefix,
+            endpoint='data-analytics',
+            allowed_methods=['GET', 'POST'],
+            api_models=[]
         )

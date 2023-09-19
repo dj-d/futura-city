@@ -30,6 +30,11 @@ from aws_cdk import (
     aws_iam as iam
 )
 
+from ..api_gateway.api_gateway_stack import (
+    ApiGatewayStack,
+    ApiGatewayModel
+)
+
 from lib.dataclasses import (
     ServicePrefix,
     SecurityGroupConfig,
@@ -242,4 +247,26 @@ class EnergyEfficiencyStack(Stack):
                     self.__mysql.secret.secret_arn
                 ]
             )
+        )
+
+        # ---------------------------------------- #
+        # Api Gateway
+        # ---------------------------------------- #
+        self.api_gateway = ApiGatewayStack(
+            self,
+            construct_id=self.service_prefix.id + 'api-gateway',
+            description='Energy Efficiency Api Gateway',
+            service_prefix=self.service_prefix,
+            endpoint='energy-efficiency',
+            allowed_methods=['GET', 'POST'],
+            api_models=[
+                ApiGatewayModel(
+                    method='GET',
+                    lambda_integration=self.lambda_rd
+                ),
+                ApiGatewayModel(
+                    method='POST',
+                    lambda_integration=self.lambda_wr
+                )
+            ]
         )
