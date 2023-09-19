@@ -1,7 +1,13 @@
 """
 References:
   - AWS Doc:
+      - aws_cdk.NestedStack: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk/NestedStack.html
       - aws_apigateway.RestApi: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_apigateway/RestApi.html#aws_cdk.aws_apigateway.RestApi
+      - aws_apigateway.Cors: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_apigateway/Cors.html
+      - aws_apigateway.MethodResponse: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_apigateway/MethodResponse.html
+      - aws_apigateway.LambdaIntegration: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_apigateway/LambdaIntegration.html
+      - aws_apigateway.IntegrationResponse: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_apigateway/IntegrationResponse.html
+      - aws_lambda.Function: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_lambda/Function.html#aws_cdk.aws_lambda.Function
 """
 
 from dataclasses import dataclass
