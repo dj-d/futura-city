@@ -66,7 +66,7 @@ class EnergyEfficiencyStack(Stack):
             **kwargs
         )
 
-        self.service_prefix = ServicePrefix(
+        self.__service_prefix = ServicePrefix(
             id='ee-',
             name='Ee'
         )
@@ -76,7 +76,7 @@ class EnergyEfficiencyStack(Stack):
         # ---------------------------------------- #
         self.__vpc, self.__private_subnet_type = create_vpc(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             vpc_config=VpcConfig(
                 cidr='10.0.0.0/24'
             ),
@@ -87,7 +87,7 @@ class EnergyEfficiencyStack(Stack):
             )
         )
 
-        vpc_endpoint_id_prefix = self.service_prefix.id + 'vpc-ep-'
+        vpc_endpoint_id_prefix = self.__service_prefix.id + 'vpc-ep-'
 
         self.__vpc.add_interface_endpoint(
             id=vpc_endpoint_id_prefix + 'secrets-manager',
@@ -110,7 +110,7 @@ class EnergyEfficiencyStack(Stack):
         # ---------------------------------------- #
         self.__mysql_sg = create_sg(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             sg_config=SecurityGroupConfig(
                 id='rds',
                 name='Rds',
@@ -121,7 +121,7 @@ class EnergyEfficiencyStack(Stack):
 
         self.__lambda_sg = create_sg(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             sg_config=SecurityGroupConfig(
                 id='lambda',
                 name='Lambda',
@@ -135,7 +135,7 @@ class EnergyEfficiencyStack(Stack):
         # ---------------------------------------- #
         self.__mysql = create_rds_mysql(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             db_config=DbConfig(
                 vpc=self.__vpc,
                 vpc_subnet_type=self.__private_subnet_type,
@@ -164,7 +164,7 @@ class EnergyEfficiencyStack(Stack):
         # TODO: find a way to start the lambda_init only once to initialize the db
         self.__lambda_init = create_lambda(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-init',
                 name='LambdaInit',
@@ -191,9 +191,9 @@ class EnergyEfficiencyStack(Stack):
             )
         )
 
-        self.lambda_wr = create_lambda(
+        self.__lambda_wr = create_lambda(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-write',
                 name='LambdaWrite',
@@ -209,7 +209,7 @@ class EnergyEfficiencyStack(Stack):
             )
         )
 
-        self.lambda_wr.add_to_role_policy(
+        self.__lambda_wr.add_to_role_policy(
             statement=iam.PolicyStatement(
                 actions=[
                     'secretsmanager:GetSecretValue'
@@ -220,9 +220,9 @@ class EnergyEfficiencyStack(Stack):
             )
         )
 
-        self.lambda_rd = create_lambda(
+        self.__lambda_rd = create_lambda(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-read',
                 name='LambdaRead',
@@ -238,7 +238,7 @@ class EnergyEfficiencyStack(Stack):
             )
         )
 
-        self.lambda_rd.add_to_role_policy(
+        self.__lambda_rd.add_to_role_policy(
             statement=iam.PolicyStatement(
                 actions=[
                     'secretsmanager:GetSecretValue'
@@ -252,21 +252,21 @@ class EnergyEfficiencyStack(Stack):
         # ---------------------------------------- #
         # Api Gateway
         # ---------------------------------------- #
-        self.api_gateway = ApiGatewayStack(
+        self.__api_gateway = ApiGatewayStack(
             self,
-            construct_id=self.service_prefix.id + 'api-gateway',
+            construct_id=self.__service_prefix.id + 'api-gateway',
             description='Energy Efficiency Api Gateway',
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             endpoint='energy-efficiency',
             allowed_methods=['GET', 'POST'],
             api_models=[
                 ApiGatewayModel(
                     method='GET',
-                    lambda_integration=self.lambda_rd
+                    lambda_integration=self.__lambda_rd
                 ),
                 ApiGatewayModel(
                     method='POST',
-                    lambda_integration=self.lambda_wr
+                    lambda_integration=self.__lambda_wr
                 )
             ]
         )
