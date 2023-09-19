@@ -44,7 +44,7 @@ class SmartTrafficStack(Stack):
             **kwargs
         )
 
-        self.service_prefix = ServicePrefix(
+        self.__service_prefix = ServicePrefix(
             id='st-',
             name='St'
         )
@@ -54,7 +54,7 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         self.__vpc, self.__private_subnet_type = create_vpc(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             vpc_config=VpcConfig(
                 cidr='10.0.0.0/24'
             ),
@@ -65,7 +65,7 @@ class SmartTrafficStack(Stack):
             )
         )
 
-        vpc_endpoint_id_prefix = self.service_prefix.id + 'vpc-ep-'
+        vpc_endpoint_id_prefix = self.__service_prefix.id + 'vpc-ep-'
 
         self.__vpc.add_interface_endpoint(
             id=vpc_endpoint_id_prefix + 'secrets-manager',
@@ -88,7 +88,7 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         self.__mysql_sg = create_sg(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             sg_config=SecurityGroupConfig(
                 id='rds',
                 name='Rds',
@@ -99,7 +99,7 @@ class SmartTrafficStack(Stack):
 
         self.__lambda_sg = create_sg(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             sg_config=SecurityGroupConfig(
                 id='lambda',
                 name='Lambda',
@@ -113,12 +113,12 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         self.__mysql = create_rds_mysql(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             db_config=DbConfig(
                 vpc=self.__vpc,
                 vpc_subnet_type=self.__private_subnet_type,
                 security_groups=[self.__mysql_sg],
-                # instance_class=ec2.InstanceClass.I4I,
+                # instance_class=ec2.InstanceClass.I4I,  # I/O-optimized instances with local NVME drive: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
                 # instance_size=ec2.InstanceSize.LARGE,
                 credentials=rds.Credentials.from_generated_secret(
                     username='admin'
@@ -137,7 +137,7 @@ class SmartTrafficStack(Stack):
         # TODO: find a way to start the lambda_init only once to initialize the db
         self.__lambda_init = create_lambda(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-init',
                 name='LambdaInit',
@@ -166,7 +166,7 @@ class SmartTrafficStack(Stack):
 
         self.lambda_rd = create_lambda(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=self.__service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-read',
                 name='LambdaRead',
