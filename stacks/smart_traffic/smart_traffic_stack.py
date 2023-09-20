@@ -44,7 +44,7 @@ class SmartTrafficStack(Stack):
             **kwargs
         )
 
-        self.__service_prefix = ServicePrefix(
+        service_prefix = ServicePrefix(
             id='st-',
             name='St'
         )
@@ -60,7 +60,7 @@ class SmartTrafficStack(Stack):
 
         self.__vpc = create_vpc(
             instance_class=self,
-            service_prefix=self.__service_prefix,
+            service_prefix=service_prefix,
             vpc_config=VpcConfig(
                 cidr='10.0.0.0/24'
             ),
@@ -69,7 +69,7 @@ class SmartTrafficStack(Stack):
             ]
         )
 
-        vpc_endpoint_id_prefix = self.__service_prefix.id + 'vpc-ep-'
+        vpc_endpoint_id_prefix = service_prefix.id + 'vpc-ep-'
 
         self.__vpc.add_interface_endpoint(
             id=vpc_endpoint_id_prefix + 'secrets-manager',
@@ -90,9 +90,9 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         # Security Groups
         # ---------------------------------------- #
-        self.__mysql_sg = create_sg(
+        mysql_sg = create_sg(
             instance_class=self,
-            service_prefix=self.__service_prefix,
+            service_prefix=service_prefix,
             sg_config=SecurityGroupConfig(
                 id='rds',
                 name='Rds',
@@ -101,9 +101,9 @@ class SmartTrafficStack(Stack):
             )
         )
 
-        self.__lambda_sg = create_sg(
+        lambda_sg = create_sg(
             instance_class=self,
-            service_prefix=self.__service_prefix,
+            service_prefix=service_prefix,
             sg_config=SecurityGroupConfig(
                 id='lambda',
                 name='Lambda',
@@ -117,11 +117,11 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         self.__mysql = create_rds_mysql(
             instance_class=self,
-            service_prefix=self.__service_prefix,
+            service_prefix=service_prefix,
             db_config=DbConfig(
                 vpc=self.__vpc,
                 vpc_subnet_type=private_subnet_config.subnet_type,
-                security_groups=[self.__mysql_sg],
+                security_groups=[mysql_sg],
                 # FIXME: The following instance_class and instance_size are not working
                 # instance_class=ec2.InstanceClass.I4I,  # I/O-optimized instances with local NVME drive: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
                 # instance_size=ec2.InstanceSize.LARGE,  # instances in eu-north-1
@@ -132,7 +132,7 @@ class SmartTrafficStack(Stack):
         )
 
         self.__mysql.connections.allow_default_port_from(
-            other=self.__lambda_sg,
+            other=lambda_sg,
             description='Allow Lambda to access RDS'
         )
 
@@ -142,7 +142,7 @@ class SmartTrafficStack(Stack):
         # TODO: find a way to start the lambda_init only once to initialize the db
         self.__lambda_init = create_lambda(
             instance_class=self,
-            service_prefix=self.__service_prefix,
+            service_prefix=service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-init',
                 name='LambdaInit',
@@ -151,7 +151,7 @@ class SmartTrafficStack(Stack):
                 index_file_name='lambda-handler.py',
                 vpc=self.__vpc,
                 vpc_subnet_type=private_subnet_config.subnet_type,
-                security_groups=[self.__lambda_sg],
+                security_groups=[lambda_sg],
                 environment={
                     'DB_SECRET_ARN': self.__mysql.secret.secret_arn
                 }
@@ -171,7 +171,7 @@ class SmartTrafficStack(Stack):
 
         self.lambda_rd = create_lambda(
             instance_class=self,
-            service_prefix=self.__service_prefix,
+            service_prefix=service_prefix,
             lambda_config=LambdaConfig(
                 id='lambda-read',
                 name='LambdaRead',
@@ -180,7 +180,7 @@ class SmartTrafficStack(Stack):
                 index_file_name='lambda-handler.py',
                 vpc=self.__vpc,
                 vpc_subnet_type=private_subnet_config.subnet_type,
-                security_groups=[self.__lambda_sg],
+                security_groups=[lambda_sg],
                 environment={
                     'DB_SECRET_ARN': self.__mysql.secret.secret_arn
                 }
