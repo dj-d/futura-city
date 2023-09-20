@@ -118,8 +118,9 @@ class SmartTrafficStack(Stack):
                 vpc=self.__vpc,
                 vpc_subnet_type=self.__private_subnet_type,
                 security_groups=[self.__mysql_sg],
+                # FIXME: The following instance_class and instance_size are not working
                 # instance_class=ec2.InstanceClass.I4I,  # I/O-optimized instances with local NVME drive: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
-                # instance_size=ec2.InstanceSize.LARGE,
+                # instance_size=ec2.InstanceSize.LARGE,  # instances in eu-north-1
                 credentials=rds.Credentials.from_generated_secret(
                     username='admin'
                 )
