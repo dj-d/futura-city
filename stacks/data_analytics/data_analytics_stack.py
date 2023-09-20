@@ -48,23 +48,27 @@ class DataAnalyticsStack(Stack):
         # ---------------------------------------- #
         # VPC
         # ---------------------------------------- #
-        self.__vpc, self.__private_subnet_type = create_vpc(
+        private_subnet_config = SubnetConfig(
+                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
+                    subnet_id='private-subnet',
+                    cidr_mask=28
+                )
+
+        self.__vpc = create_vpc(
             instance_class=self,
             service_prefix=self.service_prefix,
             vpc_config=VpcConfig(
                 cidr='10.0.0.0/24'
             ),
-            subnet_config=SubnetConfig(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
-                subnet_id='private-subnet',
-                cidr_mask=28
-            )
+            subnets_config=[
+                private_subnet_config
+            ]
         )
 
         # ---------------------------------------- #
         # Api Gateway
         # ---------------------------------------- #
-        self.api_gateway = ApiGatewayStack(
+        self.__api_gateway = ApiGatewayStack(
             self,
             construct_id=self.service_prefix.id + 'api-gateway',
             description='Data Analytics Api Gateway',

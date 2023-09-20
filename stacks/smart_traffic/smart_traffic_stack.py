@@ -52,17 +52,21 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         # VPC
         # ---------------------------------------- #
-        self.__vpc, self.__private_subnet_type = create_vpc(
+        private_subnet_config = SubnetConfig(
+                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
+                    subnet_id='private-subnet',
+                    cidr_mask=28
+                )
+
+        self.__vpc = create_vpc(
             instance_class=self,
             service_prefix=self.__service_prefix,
             vpc_config=VpcConfig(
                 cidr='10.0.0.0/24'
             ),
-            subnet_config=SubnetConfig(
-                subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
-                subnet_id='private-subnet',
-                cidr_mask=28
-            )
+            subnets_config=[
+                private_subnet_config
+            ]
         )
 
         vpc_endpoint_id_prefix = self.__service_prefix.id + 'vpc-ep-'
@@ -71,7 +75,7 @@ class SmartTrafficStack(Stack):
             id=vpc_endpoint_id_prefix + 'secrets-manager',
             service=ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
             subnets=ec2.SubnetSelection(
-                subnet_type=self.__private_subnet_type
+                subnet_type=private_subnet_config.subnet_type
             )
         )
 
@@ -79,7 +83,7 @@ class SmartTrafficStack(Stack):
             id=vpc_endpoint_id_prefix + 'lambda',
             service=ec2.InterfaceVpcEndpointAwsService.LAMBDA_,
             subnets=ec2.SubnetSelection(
-                subnet_type=self.__private_subnet_type
+                subnet_type=private_subnet_config.subnet_type
             )
         )
 
@@ -116,7 +120,7 @@ class SmartTrafficStack(Stack):
             service_prefix=self.__service_prefix,
             db_config=DbConfig(
                 vpc=self.__vpc,
-                vpc_subnet_type=self.__private_subnet_type,
+                vpc_subnet_type=private_subnet_config.subnet_type,
                 security_groups=[self.__mysql_sg],
                 # FIXME: The following instance_class and instance_size are not working
                 # instance_class=ec2.InstanceClass.I4I,  # I/O-optimized instances with local NVME drive: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
@@ -146,7 +150,7 @@ class SmartTrafficStack(Stack):
                 code_folder_path='stacks/energy_efficiency/lambda_init',
                 index_file_name='lambda-handler.py',
                 vpc=self.__vpc,
-                vpc_subnet_type=self.__private_subnet_type,
+                vpc_subnet_type=private_subnet_config.subnet_type,
                 security_groups=[self.__lambda_sg],
                 environment={
                     'DB_SECRET_ARN': self.__mysql.secret.secret_arn
@@ -175,7 +179,7 @@ class SmartTrafficStack(Stack):
                 code_folder_path='stacks/energy_efficiency/lambda_read',
                 index_file_name='lambda-handler.py',
                 vpc=self.__vpc,
-                vpc_subnet_type=self.__private_subnet_type,
+                vpc_subnet_type=private_subnet_config.subnet_type,
                 security_groups=[self.__lambda_sg],
                 environment={
                     'DB_SECRET_ARN': self.__mysql.secret.secret_arn

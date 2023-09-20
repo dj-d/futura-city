@@ -53,29 +53,33 @@ def create_security_group(instance_class, service_prefix: ServicePrefix, sg_conf
     )
 
 
-def create_vpc(instance_class, service_prefix: ServicePrefix, vpc_config: VpcConfig, subnet_config: SubnetConfig) -> Union[ec2.Vpc, ec2.SubnetType]:
+def create_vpc(instance_class, service_prefix: ServicePrefix, vpc_config: VpcConfig, subnets_config: list[SubnetConfig]) -> ec2.Vpc:
     """
     Create a VPC with a private subnet
 
     :param instance_class:
     :param service_prefix:
     :param vpc_config:
-    :param subnet_config:
-    :return: Union[ec2.Vpc, ec2.SubnetType]
+    :param subnets_config:
+    :return: ec2.Vpc
     """
 
     vpc_construct_id = service_prefix.id + vpc_config.id
     vpc_name = service_prefix.name + vpc_config.name
     vpc_cidr = ec2.IpAddresses.cidr(vpc_config.cidr)
 
-    private_subnet_id = service_prefix.id + subnet_config.subnet_id
-    private_subnet_type = subnet_config.subnet_type
+    subnets = []
+    for sc in subnets_config:
+        sb_id = service_prefix.id + sc.subnet_id
+        sb_type = sc.subnet_type
 
-    private_subnet = ec2.SubnetConfiguration(
-        name=private_subnet_id,
-        subnet_type=private_subnet_type,
-        cidr_mask=subnet_config.cidr_mask
-    )
+        sb = ec2.SubnetConfiguration(
+            name=sb_id,
+            subnet_type=sb_type,
+            cidr_mask=sc.cidr_mask
+        )
+
+        subnets.append(sb)
 
     vpc = ec2.Vpc(
         instance_class,
@@ -83,12 +87,10 @@ def create_vpc(instance_class, service_prefix: ServicePrefix, vpc_config: VpcCon
         vpc_name=vpc_name,
         max_azs=vpc_config.max_azs,
         ip_addresses=vpc_cidr,
-        subnet_configuration=[
-            private_subnet
-        ]
+        subnet_configuration=subnets
     )
 
-    return vpc, private_subnet_type
+    return vpc
 
 
 def create_rds_mysql(instance_class, service_prefix: ServicePrefix, db_config: DbConfig) -> rds.DatabaseInstance:
@@ -157,4 +159,5 @@ def create_lambda(instance_class, service_prefix: ServicePrefix, lambda_config: 
         memory_size=lambda_config.memory_size,
         environment=lambda_config.environment
     )
+
     return base_lambda
