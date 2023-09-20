@@ -40,7 +40,7 @@ class DataAnalyticsStack(Stack):
             **kwargs
         )
 
-        self.service_prefix = ServicePrefix(
+        service_prefix = ServicePrefix(
             id='da-',
             name='Da'
         )
@@ -56,7 +56,7 @@ class DataAnalyticsStack(Stack):
 
         self.__vpc = create_vpc(
             instance_class=self,
-            service_prefix=self.service_prefix,
+            service_prefix=service_prefix,
             vpc_config=VpcConfig(
                 cidr='10.0.0.0/24'
             ),
@@ -70,9 +70,9 @@ class DataAnalyticsStack(Stack):
         # ---------------------------------------- #
         self.__api_gateway = ApiGatewayStack(
             self,
-            construct_id=self.service_prefix.id + 'api-gateway',
+            construct_id=service_prefix.id + 'api-gateway',
             description='Data Analytics Api Gateway',
-            service_prefix=self.service_prefix,
+            service_prefix=service_prefix,
             endpoint='data-analytics',
             allowed_methods=['GET', 'POST'],
             api_models=[]
