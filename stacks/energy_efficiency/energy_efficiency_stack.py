@@ -140,6 +140,11 @@ class EnergyEfficiencyStack(Stack):
                 vpc=self.__vpc,
                 vpc_subnet_type=self.__private_subnet_type,
                 security_groups=[self.__mysql_sg],
+                # FIXME: The following instance_class and instance_size are not working
+                # instance_class=ec2.InstanceClass.D3EN,  # Storage-optimized instances, 3rd generation.
+                # instance_size=ec2.InstanceSize.LARGE,
+                # instance_class=ec2.InstanceClass.D2,  # Storage-optimized instances in eu-north-1
+                # instance_size=ec2.InstanceSize.XLARGE,
                 credentials=rds.Credentials.from_generated_secret(
                     username='admin'
                 )
