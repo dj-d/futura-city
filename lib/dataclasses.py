@@ -7,6 +7,7 @@ References:
         - aws_ec2.InstanceClass: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
         - aws_ec2.InstanceSize: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceSize.html
         - aws_ec2.SecurityGroup: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SecurityGroup.html#aws_cdk.aws_ec2.SecurityGroup
+        - aws_ec2.BastionHostLinux: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/BastionHostLinux.html#aws_cdk.aws_ec2.BastionHostLinux.instance
 """
 
 from dataclasses import dataclass
@@ -15,7 +16,8 @@ from aws_cdk import (
     Duration,
     aws_ec2 as ec2,
     aws_rds as rds,
-    aws_lambda as lambda_
+    aws_lambda as lambda_,
+    aws_iam as iam
 )
 
 
@@ -80,3 +82,27 @@ class LambdaConfig:
     memory_size: int = 256
     environment: dict = None
     security_groups: list[ec2.SecurityGroup] = None
+
+
+@dataclass
+class Ec2Config:
+    vpc: ec2.Vpc
+    vpc_subnet_id: str
+    id: str
+    instance_class: ec2.InstanceClass = ec2.InstanceClass.T3
+    instance_size: ec2.InstanceSize = ec2.InstanceSize.MICRO
+    machine_image: ec2.IMachineImage = ec2.MachineImage.latest_amazon_linux2023()
+    security_group: ec2.SecurityGroup = None
+    role: iam.Role = None
+
+
+@dataclass
+class BastionHostConfig:
+    vpc: ec2.Vpc
+    vpc_subnet_id: str
+    id: str = 'bastion-host'
+    name: str = 'BastionHost'
+    instance_class: ec2.InstanceClass = ec2.InstanceClass.T3
+    instance_size: ec2.InstanceSize = ec2.InstanceSize.MICRO
+    security_group: ec2.SecurityGroup = None
+    ssh_key_path: str = None
