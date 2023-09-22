@@ -7,7 +7,6 @@ References:
         - aws_ec2.InstanceClass: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
         - aws_ec2.InstanceSize: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceSize.html
         - aws_ec2.SecurityGroup: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SecurityGroup.html#aws_cdk.aws_ec2.SecurityGroup
-        - aws_ec2.BastionHostLinux: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/BastionHostLinux.html#aws_cdk.aws_ec2.BastionHostLinux.instance
 """
 
 from dataclasses import dataclass

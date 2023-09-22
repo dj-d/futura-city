@@ -11,6 +11,7 @@ References:
         - aws_rds.DatabaseInstance: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_rds/DatabaseInstance.html#aws_cdk.aws_rds.DatabaseInstance.vpc
         - aws_rds.DatabaseInstanceEngine: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_rds/DatabaseInstanceEngine.html
         - aws_lambda_python_alpha.PythonFunction: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_lambda_python_alpha/PythonFunction.html#aws_cdk.aws_lambda_python_alpha.PythonFunction.env
+        - aws_ec2.BastionHostLinux: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/BastionHostLinux.html#aws_cdk.aws_ec2.BastionHostLinux.instance
 """
 
 from aws_cdk import (
@@ -19,19 +20,20 @@ from aws_cdk import (
     aws_lambda_python_alpha as lambda_python
 )
 
-from typing import Union
-
 from lib.dataclasses import (
     ServicePrefix,
     SecurityGroupConfig,
     VpcConfig,
     SubnetConfig,
     DbConfig,
-    LambdaConfig
+    LambdaConfig,
+    Ec2Config,
+    BastionHostConfig
 )
 
 
-def create_security_group(instance_class, service_prefix: ServicePrefix, sg_config: SecurityGroupConfig) -> ec2.SecurityGroup:
+def create_security_group(instance_class, service_prefix: ServicePrefix,
+                          sg_config: SecurityGroupConfig) -> ec2.SecurityGroup:
     """
     Create a Security Group
 
@@ -53,7 +55,8 @@ def create_security_group(instance_class, service_prefix: ServicePrefix, sg_conf
     )
 
 
-def create_vpc(instance_class, service_prefix: ServicePrefix, vpc_config: VpcConfig, subnets_config: list[SubnetConfig]) -> ec2.Vpc:
+def create_vpc(instance_class, service_prefix: ServicePrefix, vpc_config: VpcConfig,
+               subnets_config: list[SubnetConfig]) -> ec2.Vpc:
     """
     Create a VPC with a private subnet
 
@@ -133,7 +136,8 @@ def create_rds_mysql(instance_class, service_prefix: ServicePrefix, db_config: D
     )
 
 
-def create_lambda(instance_class, service_prefix: ServicePrefix, lambda_config: LambdaConfig) -> lambda_python.PythonFunction:
+def create_lambda(instance_class, service_prefix: ServicePrefix,
+                  lambda_config: LambdaConfig) -> lambda_python.PythonFunction:
     """
     Create a Lambda function with custom dependencies
 
@@ -167,3 +171,74 @@ def create_lambda(instance_class, service_prefix: ServicePrefix, lambda_config: 
     )
 
     return base_lambda
+
+
+def create_ec2(instance_class, service_prefix: ServicePrefix, ec2_config: Ec2Config) -> ec2.Instance:
+    """
+    Create an EC2 instance
+
+    :param instance_class:
+    :param service_prefix:
+    :param ec2_config:
+    :return:
+    """
+
+    ec2_id = service_prefix.id + ec2_config.id
+    ec2_subnet_id = service_prefix.id + ec2_config.vpc_subnet_id
+
+    instance = ec2.Instance(
+        instance_class,
+        id=ec2_id,
+        instance_type=ec2.InstanceType.of(
+            ec2_config.instance_class,
+            ec2_config.instance_size
+        ),
+        machine_image=ec2_config.machine_image,
+        vpc=ec2_config.vpc,
+        vpc_subnets=ec2.SubnetSelection(
+            subnet_group_name=ec2_subnet_id
+        ),
+        role=ec2_config.role,
+        security_group=ec2_config.security_group,
+        key_name='ec2-bastion-host'
+    )
+
+    # for sg in ec2_config.security_groups:
+    #     instance.add_security_group(sg)
+
+    return instance
+
+
+def create_bastion_host(instance_class, service_prefix: ServicePrefix,
+                        bh_config: BastionHostConfig) -> ec2.BastionHostLinux:
+    """
+    Create a Bastion Host
+
+    :param instance_class:
+    :param service_prefix:
+    :param bh_config:
+    :return:
+    """
+    bh = ec2.BastionHostLinux(
+        instance_class,
+        id=service_prefix.id + bh_config.id,
+        vpc=bh_config.vpc,
+        subnet_selection=ec2.SubnetSelection(
+            subnet_group_name=service_prefix.id + bh_config.vpc_subnet_id
+        ),
+        instance_name=service_prefix.name + bh_config.name,
+        instance_type=ec2.InstanceType.of(
+            bh_config.instance_class,
+            bh_config.instance_size
+        ),
+        security_group=bh_config.security_group
+    )
+
+    with open(bh_config.ssh_key_path) as f:
+        bh_key = f.read()
+
+    bh.instance.user_data.add_commands(
+        f'echo {bh_key} > /mnt/id_rsa && '
+        f'chmod 0400 /mnt/id_rsa && '
+        f'chown ec2-user:ec2-user /mnt/id_rsa'
+    )
