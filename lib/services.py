@@ -87,7 +87,8 @@ def create_vpc(instance_class, service_prefix: ServicePrefix, vpc_config: VpcCon
         vpc_name=vpc_name,
         max_azs=vpc_config.max_azs,
         ip_addresses=vpc_cidr,
-        subnet_configuration=subnets
+        subnet_configuration=subnets,
+        nat_gateways=vpc_config.nat_gateways
     )
 
     return vpc
@@ -106,6 +107,7 @@ def create_rds_mysql(instance_class, service_prefix: ServicePrefix, db_config: D
     db_id = service_prefix.id + 'rds-mysql'
     db_name = service_prefix.name + 'RdsMysql'
     db_engine_version = db_config.engine_version
+    db_subnet_id = service_prefix.id + db_config.vpc_subnet_id
 
     return rds.DatabaseInstance(
         instance_class,
@@ -117,7 +119,7 @@ def create_rds_mysql(instance_class, service_prefix: ServicePrefix, db_config: D
         multi_az=False,
         vpc=db_config.vpc,
         vpc_subnets=ec2.SubnetSelection(
-            subnet_type=db_config.vpc_subnet_type
+            subnet_group_name=db_subnet_id
         ),
         instance_type=ec2.InstanceType.of(
             db_config.instance_class,
@@ -141,10 +143,14 @@ def create_lambda(instance_class, service_prefix: ServicePrefix, lambda_config: 
     :return:
     """
 
+    lambda_id = service_prefix.id + lambda_config.id
+    lambda_function_name = service_prefix.name + lambda_config.name
+    lambda_subnet_id = service_prefix.id + lambda_config.vpc_subnet_id
+
     base_lambda = lambda_python.PythonFunction(
         instance_class,
-        id=service_prefix.id + lambda_config.id,
-        function_name=service_prefix.name + lambda_config.name,
+        id=lambda_id,
+        function_name=lambda_function_name,
         description=lambda_config.description,
         entry=lambda_config.code_folder_path,
         index=lambda_config.index_file_name,
@@ -152,7 +158,7 @@ def create_lambda(instance_class, service_prefix: ServicePrefix, lambda_config: 
         runtime=lambda_config.runtime,
         vpc=lambda_config.vpc,
         vpc_subnets=ec2.SubnetSelection(
-            subnet_type=lambda_config.vpc_subnet_type
+            subnet_group_name=lambda_subnet_id
         ),
         security_groups=lambda_config.security_groups,
         timeout=lambda_config.timeout,

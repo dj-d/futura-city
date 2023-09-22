@@ -39,6 +39,7 @@ class VpcConfig:
     name: str = 'Vpc'
     max_azs: int = 2
     cidr: str = '10.0.0.0/24'
+    nat_gateways: int = 0
 
 
 @dataclass
@@ -51,7 +52,7 @@ class SubnetConfig:
 @dataclass
 class DbConfig:
     vpc: ec2.Vpc
-    vpc_subnet_type: ec2.SubnetType
+    vpc_subnet_id: str
     id: str = 'rds-mysql'
     name: str = 'RdsMysql'
     engine_version: rds.MysqlEngineVersion = rds.MysqlEngineVersion.VER_8_0_28
@@ -67,7 +68,7 @@ class DbConfig:
 @dataclass
 class LambdaConfig:
     vpc: ec2.Vpc
-    vpc_subnet_type: ec2.SubnetType
+    vpc_subnet_id: str
     id: str
     name: str
     description: str
