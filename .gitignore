@@ -19,3 +19,4 @@ cdk.out
 ### Other ###
 *.egg-info
 *.swp
+.nvmrc
