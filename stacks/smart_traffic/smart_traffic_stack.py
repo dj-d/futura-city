@@ -24,20 +24,35 @@ from lib.dataclasses import (
     VpcConfig,
     SubnetConfig,
     DbConfig,
-    LambdaConfig
+    LambdaConfig,
+    Ec2Config,
+    BastionHostConfig,
+    IamRoleConfig
 )
 
 from lib.services import (
     create_security_group as create_sg,
     create_vpc,
     create_rds_mysql,
-    create_lambda
+    create_lambda,
+    create_ec2,
+    create_bastion_host,
+    create_role_inline_policy,
+    get_secret_value_access_policy
 )
 
 service_prefix = ServicePrefix(
     id='st-',
     name='St'
 )
+
+gh_token_id = f'GH_TOKEN_ID={service_prefix.id}gh-token'
+
+with open('./stacks/smart_traffic/userdata/ec2_wr_init.sh') as f:
+    ec2_wr_init = f.read()
+
+with open('./stacks/smart_traffic/userdata/ec2_ai_engine_init.sh') as f:
+    ec2_ai_engine_init = f.read()
 
 
 class SmartTrafficStack(Stack):
@@ -106,6 +121,71 @@ class SmartTrafficStack(Stack):
                 name='Lambda',
                 description='Security group for Lambda',
                 vpc=self.__vpc
+            )
+        )
+
+        bh_sg = create_sg(
+            instance_class=self,
+            service_prefix=service_prefix,
+            sg_config=SecurityGroupConfig(
+                id='bh',
+                name='BastionHost',
+                description='Security group for Bastion Host',
+                vpc=self.__vpc
+            )
+        )
+
+        bh_sg.add_ingress_rule(
+            peer=ec2.Peer.any_ipv4(),
+            connection=ec2.Port.tcp(22),
+            description='Allow ssh access from anywhere'
+        )
+
+        ec2_sg = create_sg(
+            instance_class=self,
+            service_prefix=service_prefix,
+            sg_config=SecurityGroupConfig(
+                id='ec2',
+                name='Ec2',
+                description='Security group for EC2',
+                vpc=self.__vpc
+            )
+        )
+
+        # Allow ssh access from anywhere
+        ec2_sg.add_ingress_rule(
+            peer=ec2.Peer.any_ipv4(),
+            connection=ec2.Port.tcp(22),
+            description='Allow ssh access from anywhere'
+        )
+
+        # ---------------------------------------- #
+        # IAM Roles
+        # ---------------------------------------- #
+        ec2_role = create_role_inline_policy(
+            instance_class=self,
+            service_prefix=service_prefix,
+            iam_role_config=IamRoleConfig(
+                id='ec2-role',
+                name='Ec2Role',
+                description='Role for EC2',
+                assumed_by=iam.ServicePrincipal('ec2.amazonaws.com'),
+                inline_policies={
+                    'ec2-secret-policy': iam.PolicyDocument(
+                        statements=[
+                            get_secret_value_access_policy(
+                                resources=[f'arn:aws:secretsmanager:*:*:secret:{service_prefix.id}*']
+                            ),
+                            iam.PolicyStatement(
+                                actions=[
+                                    'kms:Decrypt',
+                                    'secretmanager:ListSecrets'
+                                ],
+                                resources=['*']
+                            )
+                        ]
+                    )
+                }
             )
         )
 
@@ -194,3 +274,52 @@ class SmartTrafficStack(Stack):
                 ]
             )
         )
+
+        # ---------------------------------------- #
+        # Bastion Host
+        # ---------------------------------------- #
+        self.__bastion_host = create_bastion_host(
+            instance_class=self,
+            service_prefix=service_prefix,
+            bh_config=BastionHostConfig(
+                vpc=self.__vpc,
+                vpc_subnet_id=public_subnet_config.subnet_id,
+                security_group=bh_sg,
+                ssh_key_path='./stacks/smart_traffic/userdata/ec2-bastion-host.pem'
+            )
+        )
+
+        # ---------------------------------------- #
+        # EC2 Instances
+        # ---------------------------------------- #
+        self.__ec2_wr = create_ec2(
+            instance_class=self,
+            service_prefix=service_prefix,
+            ec2_config=Ec2Config(
+                id='ec2-wr',
+                vpc=self.__vpc,
+                vpc_subnet_id=storage_subnet_config.subnet_id,
+                security_group=ec2_sg,
+                role=ec2_role,
+                key_name='ec2-bastion-host'
+            )
+        )
+
+        self.__ec2_wr.user_data.add_commands(gh_token_id)
+        self.__ec2_wr.user_data.add_commands(ec2_wr_init)
+
+        self.__ec2_ai_engine = create_ec2(
+            instance_class=self,
+            service_prefix=service_prefix,
+            ec2_config=Ec2Config(
+                id='ec2-ai-engine',
+                vpc=self.__vpc,
+                vpc_subnet_id=ai_subnet_config.subnet_id,
+                security_group=ec2_sg,
+                role=ec2_role,
+                key_name='ec2-bastion-host'
+            )
+        )
+
+        self.__ec2_ai_engine.user_data.add_commands(gh_token_id)
+        self.__ec2_ai_engine.user_data.add_commands(ec2_ai_engine_init)
