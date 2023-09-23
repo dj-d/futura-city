@@ -34,6 +34,11 @@ from lib.services import (
     create_lambda
 )
 
+service_prefix = ServicePrefix(
+    id='st-',
+    name='St'
+)
+
 
 class SmartTrafficStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -44,47 +49,39 @@ class SmartTrafficStack(Stack):
             **kwargs
         )
 
-        service_prefix = ServicePrefix(
-            id='st-',
-            name='St'
-        )
-
         # ---------------------------------------- #
         # VPC
         # ---------------------------------------- #
-        private_subnet_config = SubnetConfig(
-                    subnet_type=ec2.SubnetType.PRIVATE_ISOLATED,
-                    subnet_id='private-subnet',
-                    cidr_mask=28
-                )
+        public_subnet_config = SubnetConfig(
+            subnet_id='public-subnet',
+            subnet_type=ec2.SubnetType.PUBLIC,
+            cidr_mask=28
+        )
+
+        ai_subnet_config = SubnetConfig(
+            subnet_id='ai-subnet',
+            subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            cidr_mask=28
+        )
+
+        storage_subnet_config = SubnetConfig(
+            subnet_id='storage-subnet',
+            subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            cidr_mask=28
+        )
 
         self.__vpc = create_vpc(
             instance_class=self,
             service_prefix=service_prefix,
             vpc_config=VpcConfig(
-                cidr='10.0.0.0/24'
+                cidr='10.0.0.0/24',
+                nat_gateways=1
             ),
             subnets_config=[
-                private_subnet_config
+                public_subnet_config,
+                ai_subnet_config,
+                storage_subnet_config
             ]
-        )
-
-        vpc_endpoint_id_prefix = service_prefix.id + 'vpc-ep-'
-
-        self.__vpc.add_interface_endpoint(
-            id=vpc_endpoint_id_prefix + 'secrets-manager',
-            service=ec2.InterfaceVpcEndpointAwsService.SECRETS_MANAGER,
-            subnets=ec2.SubnetSelection(
-                subnet_type=private_subnet_config.subnet_type
-            )
-        )
-
-        self.__vpc.add_interface_endpoint(
-            id=vpc_endpoint_id_prefix + 'lambda',
-            service=ec2.InterfaceVpcEndpointAwsService.LAMBDA_,
-            subnets=ec2.SubnetSelection(
-                subnet_type=private_subnet_config.subnet_type
-            )
         )
 
         # ---------------------------------------- #
