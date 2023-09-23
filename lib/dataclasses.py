@@ -94,6 +94,7 @@ class Ec2Config:
     machine_image: ec2.IMachineImage = ec2.MachineImage.latest_amazon_linux2023()
     security_group: ec2.SecurityGroup = None
     role: iam.Role = None
+    key_name: str = None
 
 
 @dataclass
