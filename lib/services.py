@@ -12,11 +12,16 @@ References:
         - aws_rds.DatabaseInstanceEngine: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_rds/DatabaseInstanceEngine.html
         - aws_lambda_python_alpha.PythonFunction: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_lambda_python_alpha/PythonFunction.html#aws_cdk.aws_lambda_python_alpha.PythonFunction.env
         - aws_ec2.BastionHostLinux: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/BastionHostLinux.html#aws_cdk.aws_ec2.BastionHostLinux.instance
+        - aws_ec2.Instance: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/Instance.html#aws_cdk.aws_ec2.Instance
+        - aws_ec2.InstanceType: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceType.html#aws_cdk.aws_ec2.InstanceType
+        - aws_ec2.MachineImage: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/MachineImage.html#aws_cdk.aws_ec2.MachineImage
+        - aws_ec2.IMachineImage: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/IMachineImage.html#aws_cdk.aws_ec2.IMachineImage
 """
 
 from aws_cdk import (
     aws_ec2 as ec2,
     aws_rds as rds,
+    aws_iam as iam,
     aws_lambda_python_alpha as lambda_python
 )
 
@@ -28,7 +33,8 @@ from lib.dataclasses import (
     DbConfig,
     LambdaConfig,
     Ec2Config,
-    BastionHostConfig
+    BastionHostConfig,
+    IamRoleConfig
 )
 
 
@@ -167,7 +173,8 @@ def create_lambda(instance_class, service_prefix: ServicePrefix,
         security_groups=lambda_config.security_groups,
         timeout=lambda_config.timeout,
         memory_size=lambda_config.memory_size,
-        environment=lambda_config.environment
+        environment=lambda_config.environment,
+        role=lambda_config.role
     )
 
     return base_lambda
@@ -200,7 +207,7 @@ def create_ec2(instance_class, service_prefix: ServicePrefix, ec2_config: Ec2Con
         ),
         role=ec2_config.role,
         security_group=ec2_config.security_group,
-        key_name='ec2-bastion-host'
+        key_name=ec2_config.key_name
     )
 
     # for sg in ec2_config.security_groups:
@@ -219,6 +226,7 @@ def create_bastion_host(instance_class, service_prefix: ServicePrefix,
     :param bh_config:
     :return:
     """
+
     bh = ec2.BastionHostLinux(
         instance_class,
         id=service_prefix.id + bh_config.id,
@@ -237,8 +245,60 @@ def create_bastion_host(instance_class, service_prefix: ServicePrefix,
     with open(bh_config.ssh_key_path) as f:
         bh_key = f.read()
 
+    # FIXME
     bh.instance.user_data.add_commands(
         f'echo {bh_key} > /mnt/id_rsa && '
         f'chmod 0400 /mnt/id_rsa && '
         f'chown ec2-user:ec2-user /mnt/id_rsa'
+    )
+
+
+def create_role_inline_policy(instance_class, service_prefix: ServicePrefix,
+                              iam_role_config: IamRoleConfig) -> iam.Role:
+    role_id = service_prefix.id + iam_role_config.id
+    role_name = service_prefix.name + iam_role_config.name
+
+    return iam.Role(
+        instance_class,
+        id=role_id,
+        role_name=role_name,
+        description=iam_role_config.description,
+        assumed_by=iam_role_config.assumed_by,
+        inline_policies=iam_role_config.inline_policies
+    )
+
+
+def get_secret_value_access_policy(resources: list[str]) -> iam.PolicyStatement:
+    """
+    Create a policy statement for accessing a secret value from Secrets Manager
+
+    :param resources:
+    :return:
+    """
+
+    return iam.PolicyStatement(
+        actions=[
+            'secretsmanager:GetSecretValue',
+            'secretsmanager:DescribeSecret',
+            'secretsmanager:ListSecretVersionIds'
+        ],
+        resources=resources
+    )
+
+
+def get_lambda_base_policy() -> iam.PolicyStatement:
+    """
+    Create a policy statement for accessing a secret value from Secrets Manager
+
+    :param resources:
+    :return:
+    """
+
+    return iam.PolicyStatement(
+        actions=[
+            'secretsmanager:GetSecretValue',
+            'secretsmanager:DescribeSecret',
+            'secretsmanager:ListSecretVersionIds'
+        ],
+        resources=['*']
     )
