@@ -27,7 +27,8 @@ from lib.dataclasses import (
     LambdaConfig,
     Ec2Config,
     BastionHostConfig,
-    IamRoleConfig
+    IamRoleConfig,
+    S3Config
 )
 
 from lib.services import (
@@ -38,7 +39,8 @@ from lib.services import (
     create_ec2,
     create_bastion_host,
     create_role_inline_policy,
-    get_secret_value_access_policy
+    get_secret_value_access_policy,
+    create_s3_bucket
 )
 
 service_prefix = ServicePrefix(
@@ -214,6 +216,17 @@ class SmartTrafficStack(Stack):
         )
 
         # ---------------------------------------- #
+        # S3 Buckets
+        # ---------------------------------------- #
+        self.__image_backups_bucket = create_s3_bucket(
+            instance_class=self,
+            service_prefix=service_prefix,
+            s3_config=S3Config(
+                id='image-backups-bucket'
+            )
+        )
+
+        # ---------------------------------------- #
         # Lambda Functions
         # ---------------------------------------- #
         # TODO: find a way to start the lambda_init only once to initialize the db
@@ -318,6 +331,18 @@ class SmartTrafficStack(Stack):
                 security_group=ec2_sg,
                 role=ec2_role,
                 key_name='ec2-bastion-host'
+            )
+        )
+
+        self.__ec2_ai_engine.add_to_role_policy(
+            statement=iam.PolicyStatement(
+                actions=[
+                    's3:PutObject',
+                    's3:PutObjectAcl'
+                ],
+                resources=[
+                    f'arn:aws:s3:::{self.__image_backups_bucket.bucket_name}/*'
+                ]
             )
         )
 
