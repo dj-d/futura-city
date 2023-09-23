@@ -7,16 +7,19 @@ References:
         - aws_ec2.InstanceClass: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceClass.html#aws_cdk.aws_ec2.InstanceClass
         - aws_ec2.InstanceSize: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/InstanceSize.html
         - aws_ec2.SecurityGroup: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_ec2/SecurityGroup.html#aws_cdk.aws_ec2.SecurityGroup
+        - aws_s3.Bucket: https://docs.aws.amazon.com/cdk/api/v2/python/aws_cdk.aws_s3/Bucket.html
 """
 
 from dataclasses import dataclass
 
 from aws_cdk import (
     Duration,
+    RemovalPolicy,
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_lambda as lambda_,
-    aws_iam as iam
+    aws_iam as iam,
+    aws_s3 as s3
 )
 
 
@@ -116,3 +119,10 @@ class IamRoleConfig:
     description: str = None
     assumed_by: iam.ServicePrincipal = None
     inline_policies: dict = None
+
+
+@dataclass
+class S3Config:
+    id: str
+    removal_policy: RemovalPolicy = RemovalPolicy.DESTROY
+    block_public_access: s3.BlockPublicAccess = s3.BlockPublicAccess.BLOCK_ALL

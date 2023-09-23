@@ -22,7 +22,8 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_iam as iam,
-    aws_lambda_python_alpha as lambda_python
+    aws_lambda_python_alpha as lambda_python,
+    aws_s3 as s3
 )
 
 from lib.dataclasses import (
@@ -34,7 +35,8 @@ from lib.dataclasses import (
     LambdaConfig,
     Ec2Config,
     BastionHostConfig,
-    IamRoleConfig
+    IamRoleConfig,
+    S3Config
 )
 
 
@@ -301,4 +303,26 @@ def get_lambda_base_policy() -> iam.PolicyStatement:
             'secretsmanager:ListSecretVersionIds'
         ],
         resources=['*']
+    )
+
+
+def create_s3_bucket(instance_class, service_prefix: ServicePrefix,
+                     s3_config: S3Config) -> s3.Bucket:
+    """
+    Create an S3 bucket
+
+    :param instance_class:
+    :param service_prefix:
+    :param s3_config:
+    :return:
+    """
+
+    s3_id = service_prefix.id + s3_config.id
+
+    return s3.Bucket(
+        instance_class,
+        id=s3_id,
+        bucket_name=s3_id,
+        removal_policy=s3_config.removal_policy,
+        block_public_access=s3_config.block_public_access
     )
