@@ -80,7 +80,8 @@ class LambdaConfig:
     timeout: Duration = Duration.seconds(300)
     memory_size: int = 256
     environment: dict = None
-    security_groups: list[ec2.SecurityGroup] = None
+    security_groups: list[ec2.SecurityGroup] = None,
+    role: iam.Role = None
 
 
 @dataclass
