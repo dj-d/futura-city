@@ -107,3 +107,12 @@ class BastionHostConfig:
     instance_size: ec2.InstanceSize = ec2.InstanceSize.MICRO
     security_group: ec2.SecurityGroup = None
     ssh_key_path: str = None
+
+
+@dataclass
+class IamRoleConfig:
+    id: str
+    name: str
+    description: str = None
+    assumed_by: iam.ServicePrincipal = None
+    inline_policies: dict = None
