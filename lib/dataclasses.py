@@ -68,9 +68,9 @@ class DbConfig:
 
 @dataclass
 class LambdaConfig:
+    id: str
     vpc: ec2.Vpc
     vpc_subnet_id: str
-    id: str
     name: str
     description: str
     code_folder_path: str
@@ -85,9 +85,9 @@ class LambdaConfig:
 
 @dataclass
 class Ec2Config:
+    id: str
     vpc: ec2.Vpc
     vpc_subnet_id: str
-    id: str
     instance_class: ec2.InstanceClass = ec2.InstanceClass.T3
     instance_size: ec2.InstanceSize = ec2.InstanceSize.MICRO
     machine_image: ec2.IMachineImage = ec2.MachineImage.latest_amazon_linux2023()
