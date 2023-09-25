@@ -14,6 +14,7 @@ from dataclasses import dataclass
 
 from constructs import Construct
 from aws_cdk import (
+    CfnOutput,
     NestedStack,
     aws_lambda as lambda_,
     aws_apigateway as apigw_
@@ -44,10 +45,13 @@ class ApiGatewayStack(NestedStack):
     ):
         super().__init__(scope, construct_id, **kwargs)
 
+        self.__service_prefix = service_prefix
+        self.__endpoint = endpoint
+
         self.__api_gateway = apigw_.RestApi(
             self,
-            id=service_prefix.id + 'api-gateway',
-            rest_api_name=service_prefix.name + 'ApiGateway',
+            id=self.__service_prefix.id + 'api-gateway',
+            rest_api_name=self.__service_prefix.name + 'ApiGateway',
             description=description
         )
 
@@ -87,3 +91,14 @@ class ApiGatewayStack(NestedStack):
                 )
             ]
         )
+
+    def get_rest_url(self) -> str:
+        url = self.__api_gateway.url + self.__endpoint
+
+        CfnOutput(
+            self,
+            id=self.__service_prefix.id + 'apigw-url',
+            value=url
+        )
+
+        return url
