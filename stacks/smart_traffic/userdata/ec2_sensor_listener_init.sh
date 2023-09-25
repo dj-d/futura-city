@@ -19,25 +19,25 @@ cd "$WORKING_DIR" || echo "Failed to change directory" >> "$WORKING_DIR"/error.l
 echo "2" >> "$WORKING_DIR"/status.log
 
 # Clone repo
-if [ ! -d "fc-st-ec2-wr" ]; then
+if [ ! -d "fc-st-ec2-sensor-listener" ]; then
   # Get GitHub token
   GITHUB_TOKEN=$(aws secretsmanager get-secret-value --secret-id "$GH_TOKEN_ID" | jq --raw-output .SecretString | jq -r .'"github-token"')
 
   echo "3" >> "$WORKING_DIR"/status.log
 
-  git clone https://dj-d:"$GITHUB_TOKEN"@github.com/dj-d/fc-st-ec2-wr
+  git clone https://dj-d:"$GITHUB_TOKEN"@github.com/dj-d/fc-st-ec2-sensor-listener
 
   echo "4" >> "$WORKING_DIR"/status.log
 fi
 
-if [ -d "$WORKING_DIR/fc-st-ec2-wr" ]; then
+if [ -d "$WORKING_DIR/fc-st-ec2-sensor-listener" ]; then
   echo "5" >> "$WORKING_DIR"/status.log
 
-  cd "$WORKING_DIR"/fc-st-ec2-wr
+  cd "$WORKING_DIR"/fc-st-ec2-sensor-listener
 
   echo "6" >> "$WORKING_DIR"/status.log
 
-#  touch test.txt
+  touch test.txt
 
   echo "7" >> "$WORKING_DIR"/status.log
 
