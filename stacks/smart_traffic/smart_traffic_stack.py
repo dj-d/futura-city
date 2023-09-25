@@ -15,7 +15,8 @@ from aws_cdk import (
     Stack,
     aws_ec2 as ec2,
     aws_rds as rds,
-    aws_iam as iam
+    aws_iam as iam,
+    aws_amplify_alpha as amplify
 )
 
 from lib.dataclasses import (
@@ -426,3 +427,24 @@ class SmartTrafficStack(Stack):
                 )
             ]
         )
+
+        # ---------------------------------------- #
+        # Amplify
+        # ---------------------------------------- #
+        self.__ui = amplify.App(
+            self,
+            id=service_prefix.id + 'ui',
+            source_code_provider=amplify.GitHubSourceCodeProvider(
+                owner='dj-d',
+                repository='fc-st-frontend',
+                oauth_token=SecretValue.secrets_manager(
+                    service_prefix.id + 'gh-token',
+                    json_field='github-token'
+                )
+            ),
+            environment_variables={
+                'API_ENDPOINT': self.__api_gateway.get_rest_url()
+            }
+        )
+
+        self.__ui.add_branch('main')
