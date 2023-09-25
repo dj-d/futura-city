@@ -56,6 +56,9 @@ with open('./stacks/smart_traffic/userdata/ec2_wr_init.sh') as f:
 with open('./stacks/smart_traffic/userdata/ec2_ai_engine_init.sh') as f:
     ec2_ai_engine_init = f.read()
 
+with open('./stacks/smart_traffic/userdata/ec2_sensor_listener_init.sh') as f:
+    ec2_sensors_listener_init = f.read()
+
 
 class SmartTrafficStack(Stack):
     def __init__(self, scope: Construct, construct_id: str, **kwargs) -> None:
@@ -72,30 +75,37 @@ class SmartTrafficStack(Stack):
         public_subnet_config = SubnetConfig(
             subnet_id='public-subnet',
             subnet_type=ec2.SubnetType.PUBLIC,
-            cidr_mask=28
+            cidr_mask=24
+        )
+
+        sensor_subnet_config = SubnetConfig(
+            subnet_id='sensor-subnet',
+            subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
+            cidr_mask=24
         )
 
         ai_subnet_config = SubnetConfig(
             subnet_id='ai-subnet',
             subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
-            cidr_mask=28
+            cidr_mask=24
         )
 
         storage_subnet_config = SubnetConfig(
             subnet_id='storage-subnet',
             subnet_type=ec2.SubnetType.PRIVATE_WITH_EGRESS,
-            cidr_mask=28
+            cidr_mask=24
         )
 
         self.__vpc = create_vpc(
             instance_class=self,
             service_prefix=service_prefix,
             vpc_config=VpcConfig(
-                cidr='10.0.0.0/24',
+                cidr='10.0.0.0/16',
                 nat_gateways=1
             ),
             subnets_config=[
                 public_subnet_config,
+                sensor_subnet_config,
                 ai_subnet_config,
                 storage_subnet_config
             ]
@@ -161,6 +171,12 @@ class SmartTrafficStack(Stack):
             description='Allow ssh access from anywhere'
         )
 
+        ec2_sg.add_ingress_rule(
+            peer=ec2.Peer.any_ipv4(),
+            connection=ec2.Port.tcp(8000),
+            description='Allow access to the web server from anywhere'
+        )
+
         # ---------------------------------------- #
         # IAM Roles
         # ---------------------------------------- #
@@ -215,6 +231,11 @@ class SmartTrafficStack(Stack):
             description='Allow Lambda to access RDS'
         )
 
+        self.__mysql.connections.allow_default_port_from(
+            other=ec2_sg,
+            description='Allow EC2 to access RDS'
+        )
+
         # ---------------------------------------- #
         # S3 Buckets
         # ---------------------------------------- #
@@ -237,7 +258,7 @@ class SmartTrafficStack(Stack):
                 id='lambda-init',
                 name='LambdaInit',
                 description='Initialize or Delete the database table "energy_efficiency"',
-                code_folder_path='stacks/energy_efficiency/lambda_init',
+                code_folder_path='stacks/smart_traffic/lambda_init',
                 index_file_name='lambda-handler.py',
                 vpc=self.__vpc,
                 vpc_subnet_id=storage_subnet_config.subnet_id,
@@ -266,7 +287,7 @@ class SmartTrafficStack(Stack):
                 id='lambda-read',
                 name='LambdaRead',
                 description='Read all data from the database table "energy_efficiency"',
-                code_folder_path='stacks/energy_efficiency/lambda_read',
+                code_folder_path='stacks/smart_traffic/lambda_read',
                 index_file_name='lambda-handler.py',
                 vpc=self.__vpc,
                 vpc_subnet_id=storage_subnet_config.subnet_id,
@@ -319,7 +340,18 @@ class SmartTrafficStack(Stack):
         )
 
         self.__ec2_wr.user_data.add_commands(gh_token_id)
+        self.__ec2_wr.user_data.add_commands(f'DB_SECRET_ARN={self.__mysql.secret.secret_arn}')
         self.__ec2_wr.user_data.add_commands(ec2_wr_init)
+        self.__ec2_wr.add_to_role_policy(
+            statement=iam.PolicyStatement(
+                actions=[
+                    'secretsmanager:GetSecretValue'
+                ],
+                resources=[
+                    self.__mysql.secret.secret_arn
+                ]
+            )
+        )
 
         self.__ec2_ai_engine = create_ec2(
             instance_class=self,
@@ -334,7 +366,29 @@ class SmartTrafficStack(Stack):
             )
         )
 
-        self.__ec2_ai_engine.add_to_role_policy(
+        self.__ec2_ai_engine.user_data.add_commands(gh_token_id)
+        self.__ec2_ai_engine.user_data.add_commands(f'EC2_WR_PRIVATE_IP={self.__ec2_wr.instance_private_ip}')
+        self.__ec2_ai_engine.user_data.add_commands(ec2_ai_engine_init)
+
+        self.__ec2_sensor_listener = create_ec2(
+            instance_class=self,
+            service_prefix=service_prefix,
+            ec2_config=Ec2Config(
+                id='ec2-sensor-listener',
+                vpc=self.__vpc,
+                vpc_subnet_id=sensor_subnet_config.subnet_id,
+                security_group=ec2_sg,
+                role=ec2_role,
+                key_name='ec2-bastion-host'
+            )
+        )
+
+        self.__ec2_sensor_listener.user_data.add_commands(gh_token_id)
+        self.__ec2_sensor_listener.user_data.add_commands(f'IMAGE_BACKUPS_BUCKET={self.__image_backups_bucket.bucket_name}')
+        self.__ec2_sensor_listener.user_data.add_commands(f'EC2_AI_ENGINE_PRIVATE_IP={self.__ec2_ai_engine.instance_private_ip}')
+        self.__ec2_sensor_listener.user_data.add_commands(ec2_sensors_listener_init)
+
+        self.__ec2_sensor_listener.add_to_role_policy(
             statement=iam.PolicyStatement(
                 actions=[
                     's3:PutObject',
@@ -345,6 +399,3 @@ class SmartTrafficStack(Stack):
                 ]
             )
         )
-
-        self.__ec2_ai_engine.user_data.add_commands(gh_token_id)
-        self.__ec2_ai_engine.user_data.add_commands(ec2_ai_engine_init)
