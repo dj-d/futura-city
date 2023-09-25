@@ -19,6 +19,7 @@ References:
 """
 
 from aws_cdk import (
+    CfnOutput,
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_iam as iam,
@@ -36,7 +37,8 @@ from lib.dataclasses import (
     Ec2Config,
     BastionHostConfig,
     IamRoleConfig,
-    S3Config
+    S3Config,
+    SshKeyConfig
 )
 
 
@@ -324,5 +326,23 @@ def create_s3_bucket(instance_class, service_prefix: ServicePrefix,
         id=s3_id,
         bucket_name=s3_id,
         removal_policy=s3_config.removal_policy,
-        block_public_access=s3_config.block_public_access
+        block_public_access=s3_config.block_public_access,
+        auto_delete_objects=s3_config.auto_delete_objects
     )
+
+
+# TODO
+def create_ssh_key(instance_class, service_prefix: ServicePrefix, ssh_key_config: SshKeyConfig) -> None:
+    ssh_key_pair = ec2.CfnKeyPair(
+        scope=instance_class,
+        id=service_prefix.id + ssh_key_config.id,
+        key_name=service_prefix.name + ssh_key_config.key_name,
+        key_format=ssh_key_config.key_format,
+        key_type=ssh_key_config.key_type,
+    )
+
+    # CfnOutput(
+    #     instance_class,
+    #     id=f"{service_prefix.id}SshKeyPairId",
+    #     value=f'https://{instance_class.region}.console.aws.amazon.com/systems-manager/parameters/ec2/keypair/{instance_class.bastion_host_ssh_key_pair_id}/description?region={instance_class.region}&tab=Table'
+    # )
