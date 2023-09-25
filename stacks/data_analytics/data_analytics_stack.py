@@ -160,8 +160,8 @@ class DataAnalyticsStack(Stack):
         )
 
         self.__ec2.user_data.add_commands(gh_token_id)
-        self.__ec2.user_data.add_commands(ec2_init)
         self.__ec2.user_data.add_commands(f'S3_BUCKET={self.__data_lake.bucket_name}')
+        self.__ec2.user_data.add_commands(ec2_init)
 
         self.__ec2.add_to_role_policy(
             statement=iam.PolicyStatement(
