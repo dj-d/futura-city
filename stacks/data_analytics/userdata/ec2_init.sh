@@ -45,8 +45,6 @@ if [ -d "$WORKING_DIR/da-ec2" ]; then
 
   echo "8" >> "$WORKING_DIR"/status.log
 
-  su ec2-user -c echo "export S3_BUCKET=$S3_BUCKET" >> /home/ec2-user/.bash_profile
-
   su ec2-user -c make install-dep
 
   echo "9" >> "$WORKING_DIR"/status.log
