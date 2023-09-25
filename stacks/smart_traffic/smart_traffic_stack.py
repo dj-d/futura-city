@@ -43,6 +43,11 @@ from lib.services import (
     create_s3_bucket
 )
 
+from stacks.api_gateway.api_gateway_stack import (
+    ApiGatewayStack,
+    ApiGatewayModel
+)
+
 service_prefix = ServicePrefix(
     id='st-',
     name='St'
@@ -384,8 +389,10 @@ class SmartTrafficStack(Stack):
         )
 
         self.__ec2_sensor_listener.user_data.add_commands(gh_token_id)
-        self.__ec2_sensor_listener.user_data.add_commands(f'IMAGE_BACKUPS_BUCKET={self.__image_backups_bucket.bucket_name}')
-        self.__ec2_sensor_listener.user_data.add_commands(f'EC2_AI_ENGINE_PRIVATE_IP={self.__ec2_ai_engine.instance_private_ip}')
+        self.__ec2_sensor_listener.user_data.add_commands(
+            f'IMAGE_BACKUPS_BUCKET={self.__image_backups_bucket.bucket_name}')
+        self.__ec2_sensor_listener.user_data.add_commands(
+            f'EC2_AI_ENGINE_PRIVATE_IP={self.__ec2_ai_engine.instance_private_ip}')
         self.__ec2_sensor_listener.user_data.add_commands(ec2_sensors_listener_init)
 
         self.__ec2_sensor_listener.add_to_role_policy(
@@ -398,4 +405,24 @@ class SmartTrafficStack(Stack):
                     f'arn:aws:s3:::{self.__image_backups_bucket.bucket_name}/*'
                 ]
             )
+        )
+
+        # ---------------------------------------- #
+        # Api Gateway
+        # ---------------------------------------- #
+        self.__api_gateway = ApiGatewayStack(
+            scope=self,
+            construct_id=service_prefix.id + 'api-gateway',
+            description='Api Gateway for the Smart Traffic project',
+            service_prefix=service_prefix,
+            endpoint='smart-traffic-api',
+            allowed_methods=[
+                'GET'
+            ],
+            api_models=[
+                ApiGatewayModel(
+                    method='GET',
+                    lambda_integration=self.lambda_rd
+                )
+            ]
         )
