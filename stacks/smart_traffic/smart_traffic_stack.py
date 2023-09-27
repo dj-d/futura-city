@@ -16,6 +16,7 @@ from aws_cdk import (
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_iam as iam,
+    aws_cognito as cognito,
     aws_amplify_alpha as amplify
 )
 
@@ -409,6 +410,31 @@ class SmartTrafficStack(Stack):
         )
 
         # ---------------------------------------- #
+        # Cognito
+        # ---------------------------------------- #
+        self.__auth_pool = cognito.UserPool(
+            self,
+            id=service_prefix.id + 'auth-pool',
+            self_sign_up_enabled=True,
+            sign_in_aliases=cognito.SignInAliases(
+                email=True,
+                username=True
+            ),
+            account_recovery=cognito.AccountRecovery.EMAIL_ONLY,
+        )
+
+        self.__auth_client = cognito.UserPoolClient(
+            self,
+            id=service_prefix.id + 'auth-client',
+            user_pool=self.__auth_pool,
+            auth_flows=cognito.AuthFlow(
+                user_password=True,
+                user_srp=True,
+                custom=True
+            )
+        )
+
+        # ---------------------------------------- #
         # Api Gateway
         # ---------------------------------------- #
         self.__api_gateway = ApiGatewayStack(
@@ -443,7 +469,10 @@ class SmartTrafficStack(Stack):
                 )
             ),
             environment_variables={
-                'API_ENDPOINT': self.__api_gateway.get_rest_url()
+                'API_ENDPOINT': self.__api_gateway.url,
+                'REGION': 'eu-north-1',
+                'USER_POOL_ID': self.__auth_pool.user_pool_id,
+                'USER_POOL_CLIENT_ID': self.__auth_client.user_pool_client_id
             }
         )
 
