@@ -13,6 +13,7 @@ References:
 from constructs import Construct
 from aws_cdk import (
     Stack,
+    SecretValue,
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_iam as iam,
