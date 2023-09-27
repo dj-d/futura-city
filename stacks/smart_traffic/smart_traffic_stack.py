@@ -13,11 +13,16 @@ References:
 from constructs import Construct
 from aws_cdk import (
     Stack,
+    CfnOutput,
+    SecretValue,
     aws_ec2 as ec2,
     aws_rds as rds,
     aws_iam as iam,
     aws_cognito as cognito,
-    aws_amplify_alpha as amplify
+    aws_amplify_alpha as amplify,
+    aws_apigatewayv2_authorizers_alpha as apigateway_authorizers,
+    aws_apigatewayv2_alpha as apigateway,
+    aws_apigatewayv2_integrations_alpha as apigateway_integrations
 )
 
 from lib.dataclasses import (
@@ -437,21 +442,67 @@ class SmartTrafficStack(Stack):
         # ---------------------------------------- #
         # Api Gateway
         # ---------------------------------------- #
-        self.__api_gateway = ApiGatewayStack(
-            scope=self,
-            construct_id=service_prefix.id + 'api-gateway',
-            description='Api Gateway for the Smart Traffic project',
-            service_prefix=service_prefix,
-            endpoint='smart-traffic-api',
-            allowed_methods=[
-                'GET'
-            ],
-            api_models=[
-                ApiGatewayModel(
-                    method='GET',
-                    lambda_integration=self.lambda_rd
-                )
+        # self.__api_gateway = ApiGatewayStack(
+        #     scope=self,
+        #     construct_id=service_prefix.id + 'api-gateway',
+        #     description='Api Gateway for the Smart Traffic project',
+        #     service_prefix=service_prefix,
+        #     endpoint='smart-traffic-api',
+        #     allowed_methods=[
+        #         'GET'
+        #     ],
+        #     api_models=[
+        #         ApiGatewayModel(
+        #             method='GET',
+        #             lambda_integration=self.lambda_rd
+        #         )
+        #     ]
+        # )
+
+        self.__api_gateway = apigateway.HttpApi(
+            self,
+            id=service_prefix.id + 'api-gateway',
+            api_name=service_prefix.name + 'ApiGateway'
+        )
+
+        self.__authorizer = apigateway_authorizers.HttpUserPoolAuthorizer(
+            id=service_prefix.id + 'authorizer',
+            pool=self.__auth_pool,
+            user_pool_clients=[
+                self.__auth_client
             ]
+        )
+
+        self.__api_gateway.add_routes(
+            path='/smart-traffic-api',
+            methods=[
+                apigateway.HttpMethod.GET
+            ],
+            authorizer=self.__authorizer,
+            integration=apigateway_integrations.HttpLambdaIntegration(
+                id=service_prefix.id + 'lambda-integration',
+                handler=self.lambda_rd
+            )
+        )
+
+        api_url = self.__api_gateway.url + 'smart-traffic-api'
+
+        CfnOutput(
+            self,
+            id=service_prefix.id + 'api-gateway-url',
+            value=api_url
+        )
+
+        CfnOutput(
+            self,
+            id=service_prefix.id + 'user-pool-id',
+            value=self.__auth_pool.user_pool_id
+        )
+
+        CfnOutput(
+            self,
+            id=service_prefix.id + 'user-pool-client-id',
+            value=self.__auth_client.user_pool_client_id
         )
 
         # ---------------------------------------- #
@@ -469,7 +520,7 @@ class SmartTrafficStack(Stack):
                 )
             ),
             environment_variables={
-                'API_ENDPOINT': self.__api_gateway.url,
+                'API_ENDPOINT': api_url,
                 'REGION': 'eu-north-1',
                 'USER_POOL_ID': self.__auth_pool.user_pool_id,
                 'USER_POOL_CLIENT_ID': self.__auth_client.user_pool_client_id
