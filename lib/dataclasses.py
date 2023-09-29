@@ -126,3 +126,12 @@ class S3Config:
     id: str
     removal_policy: RemovalPolicy = RemovalPolicy.DESTROY
     block_public_access: s3.BlockPublicAccess = s3.BlockPublicAccess.BLOCK_ALL
+    auto_delete_objects: bool = True
+
+
+@dataclass
+class SshKeyConfig:
+    id: str
+    key_name: str
+    key_format: str = 'pem'
+    key_type: str = 'rsa'
