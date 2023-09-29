@@ -98,6 +98,7 @@ class Ec2Config:
     security_group: ec2.SecurityGroup = None
     role: iam.Role = None
     key_name: str = None
+    private_ip_address: str = None
 
 
 @dataclass
